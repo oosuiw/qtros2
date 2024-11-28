@@ -7,12 +7,12 @@
 #include "autoware_adapi_v1_msgs/srv/change_operation_mode.hpp"
 #include "std_msgs/msg/float64.hpp"
 
-
 class Ros2Node : public rclcpp::Node {
 public:
     Ros2Node();
     void operation_mode_req_on();
     void operation_mode_req_off();
+    void publish_lateral_offset(double offset);
 
 private:
     rclcpp::Publisher<autoware_auto_vehicle_msgs::msg::ControlModeReport>::SharedPtr publisher_control_mode_; 
@@ -24,7 +24,6 @@ private:
     rclcpp::Client<autoware_adapi_v1_msgs::srv::ChangeOperationMode>::SharedPtr stop_mode_client;
     
     void control_mode_timer_callback();
-
 };
 
 #endif // ROS2NODE_HPP

@@ -102,10 +102,6 @@ MainGUI::MainGUI(const std::shared_ptr<Ros2Node>& ros2_node, QWidget* parent)
 
   main_widget->setLayout(main_layout);
   setCentralWidget(main_widget);
-
-  // Publisher 생성
-  publisher_lateral_offset_ = ros2_node->create_publisher<std_msgs::msg::Float64>("/planning/scenario_planning/lane_driving/behavior_planning/behavior_path_planner/input/lateral_shift", 10);
-
   adjustFontSize();
 }
 
@@ -168,7 +164,7 @@ void MainGUI::decrease_lateral_offset()
   if (lateral_offset < -0.5) {
     lateral_offset = -0.5;
   }
-  publish_lateral_offset();
+  ros2_node->publish_lateral_offset(lateral_offset); // Ros2Node 객체를 통해 퍼블리시
 }
 
 void MainGUI::increase_lateral_offset()
@@ -177,7 +173,7 @@ void MainGUI::increase_lateral_offset()
   if (lateral_offset > 0.5) {
     lateral_offset = 0.5;
   }
-  publish_lateral_offset();
+  ros2_node->publish_lateral_offset(lateral_offset); // Ros2Node 객체를 통해 퍼블리시
 }
 
 void MainGUI::publish_lateral_offset()
