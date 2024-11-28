@@ -40,8 +40,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
     std_msgs
     std_srvs
     autoware_auto_vehicle_msgs
-    autoware_adapi_v1_msgs
-    
+    autoware_adapi_v1_msgs    
 )
 
 set(CMAKE_AUTOMOC ON)
