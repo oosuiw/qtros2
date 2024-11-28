@@ -104,7 +104,7 @@ MainGUI::MainGUI(const std::shared_ptr<Ros2Node>& ros2_node, QWidget* parent)
   setCentralWidget(main_widget);
 
   // Publisher 생성
-  publisher_lateral_offset_ = ros2_node->create_publisher<std_msgs::msg::Float64>("/lateral_offset", 10);
+  publisher_lateral_offset_ = ros2_node->create_publisher<std_msgs::msg::Float64>("/planning/scenario_planning/lane_driving/behavior_planning/behavior_path_planner/input/lateral_shift", 10);
 
   adjustFontSize();
 }
