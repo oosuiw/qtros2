@@ -12,7 +12,6 @@
 MainGUI::MainGUI(const std::shared_ptr<Ros2Node>& ros2_node, QWidget* parent)
   : QMainWindow(parent)
   , ros2_node(ros2_node)
-  , is_on(false) // 초기 상태 OFF로 설정
 {
   main_widget = new QWidget(this);
   main_widget->setStyleSheet("background-color: #1F3347;");
@@ -30,10 +29,22 @@ MainGUI::MainGUI(const std::shared_ptr<Ros2Node>& ros2_node, QWidget* parent)
 
   main_layout->addLayout(status_layout);
 
-  toggle_button = new QPushButton("OFF", this); // 초기 텍스트 OFF
-  toggle_button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+  true_button = new QPushButton("ON", this);
+  false_button = new QPushButton("OFF", this);
+
+  true_button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+  false_button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
   
-  toggle_button->setStyleSheet(
+  true_button->setStyleSheet(
+      "QPushButton {"
+      "border-radius: 50px;"
+      "background-color: #00CC66;"
+      "color: white;"
+      "font-weight: bold;"
+      "}"
+  );
+
+  false_button->setStyleSheet(
       "QPushButton {"
       "border-radius: 50px;"
       "background-color: #CC0000;"
@@ -42,9 +53,11 @@ MainGUI::MainGUI(const std::shared_ptr<Ros2Node>& ros2_node, QWidget* parent)
       "}"
   );
 
-  connect(toggle_button, &QPushButton::clicked, this, &MainGUI::toggle_operation_mode);
+  connect(true_button, &QPushButton::clicked, this, &MainGUI::operation_mode_on);
+  connect(false_button, &QPushButton::clicked, this, &MainGUI::operation_mode_off);
 
-  main_layout->addWidget(toggle_button);
+  main_layout->addWidget(true_button);
+  main_layout->addWidget(false_button);
 
   main_widget->setLayout(main_layout);
   setCentralWidget(main_widget);
@@ -65,50 +78,29 @@ void MainGUI::resizeEvent(QResizeEvent* event)
 
 void MainGUI::adjustFontSize()
 {
-  int buttonSize = qMin(toggle_button->width(), toggle_button->height());
+  int buttonSize = qMin(true_button->width(), true_button->height());
   int fontSize = buttonSize / 3;
 
   QFont font = status_label->font();
   font.setPointSize(fontSize);
   status_label->setFont(font);
 
-  QFont buttonFont = toggle_button->font();
+  QFont buttonFont = true_button->font();
   buttonFont.setPointSize(fontSize);
-  toggle_button->setFont(buttonFont);
+  true_button->setFont(buttonFont);
+  false_button->setFont(buttonFont);
 }
 
-void MainGUI::toggle_operation_mode()
+void MainGUI::operation_mode_on() 
 {
-  if (is_on)
-  {
-    ros2_node->operation_mode_req_off();
-    status_label->setText("Control Mode : OFF");
-    toggle_button->setText("OFF");
-    toggle_button->setStyleSheet(
-        "QPushButton {"
-        "border-radius: 50px;"
-        "background-color: #CC0000;"
-        "color: white;"
-        "font-weight: bold;"
-        "}"
-    );
-    is_on = false;
-  }
-  else
-  {
-    ros2_node->operation_mode_req_on();
-    status_label->setText("Control Mode : ON");
-    toggle_button->setText("ON");
-    toggle_button->setStyleSheet(
-        "QPushButton {"
-        "border-radius: 50px;"
-        "background-color: #00CC66;"
-        "color: white;"
-        "font-weight: bold;"
-        "}"
-    );
-    is_on = true;
-  }
+  ros2_node->operation_mode_req_on();
+  status_label->setText("Control Mode : ON");  
+}
+
+void MainGUI::operation_mode_off()
+{
+  ros2_node->operation_mode_req_off();
+  status_label->setText("Control Mode : OFF"); 
 }
 
 MainGUI::~MainGUI()
