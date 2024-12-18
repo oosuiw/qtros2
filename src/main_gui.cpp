@@ -3,114 +3,124 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QBoxLayout>
-#include <QTimer>  
-
-#include <std_msgs/msg/bool.hpp> 
-#include <autoware_auto_vehicle_msgs/msg/control_mode_report.hpp> 
-#include <autoware_adapi_v1_msgs/msg/operation_mode_state.hpp>  
+#include <QTimer>
+#include <QScreen>
+#include <QGuiApplication>
+#include <std_msgs/msg/float64.hpp>
 
 MainGUI::MainGUI(const std::shared_ptr<Ros2Node>& ros2_node, QWidget* parent)
-  : QMainWindow(parent)
-  , ros2_node(ros2_node)
-  , is_on(false) // 초기 상태 OFF로 설정
+    : QMainWindow(parent), ros2_node(ros2_node), is_on(false), lateral_offset(0.0)
 {
-  main_widget = new QWidget(this);
-  main_widget->setStyleSheet("background-color: #1F3347;");
+    main_widget = new QWidget(this);
+    main_widget->setStyleSheet("background-color: #1F3347;");
+    setCentralWidget(main_widget);
 
-  QVBoxLayout* main_layout = new QVBoxLayout;
-  main_layout->setSpacing(20);
-  main_layout->setMargin(20);
+    QVBoxLayout* main_layout = new QVBoxLayout(main_widget);
+    main_layout->setSpacing(20);
+    main_layout->setMargin(20);
 
-  status_label = new QLabel("Control Mode : OFF", this); 
-  status_label->setStyleSheet("color: white; font-size: 32px;");
-  status_label->setAlignment(Qt::AlignCenter);
+    status_label = createLabel("Lateral Offset: 0.0", 36, Qt::AlignCenter); // 36 -> font size
+    status_label->setFixedWidth(320);  // 라벨의 너비 고정 //음수 값의 (-) 기호가 추가되면서 텍스트 길이가 늘어나고 라벨의 크기를 자동으로 확장
+    main_layout->addWidget(status_label);
 
-  QHBoxLayout* status_layout = new QHBoxLayout;
-  status_layout->addWidget(status_label, 1, Qt::AlignCenter);
+    toggle_button = createButton("STOP", "#CC0000", 260, 500, 72);
+    main_layout->addWidget(toggle_button);
 
-  main_layout->addLayout(status_layout);
+    QHBoxLayout* arrow_layout = new QHBoxLayout;
+    QPushButton* left_arrow_button = createButton("\u2190", "#4A90E2", 130, 320, 60);
+    QPushButton* right_arrow_button = createButton("\u2192", "#50E3C2", 130, 320, 60);
 
-  toggle_button = new QPushButton("OFF", this); // 초기 텍스트 OFF
-  toggle_button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-  
-  toggle_button->setStyleSheet(
-      "QPushButton {"
-      "border-radius: 50px;"
-      "background-color: #CC0000;"
-      "color: white;"
-      "font-weight: bold;"
-      "}"
-  );
+    arrow_layout->addWidget(left_arrow_button);
+    arrow_layout->addWidget(right_arrow_button);
+    main_layout->addLayout(arrow_layout);
 
-  connect(toggle_button, &QPushButton::clicked, this, &MainGUI::toggle_operation_mode);
+    connect(toggle_button, &QPushButton::clicked, this, &MainGUI::toggle_operation_mode);
+    connect(left_arrow_button, &QPushButton::clicked, this, [this]() {
+        decrease_lateral_offset();
+        status_label->setText(QString("Lateral Offset: %1").arg(lateral_offset, 0, 'f', 1));
+    });
+    connect(right_arrow_button, &QPushButton::clicked, this, [this]() {
+        increase_lateral_offset();
+        status_label->setText(QString("Lateral Offset: %1").arg(lateral_offset, 0, 'f', 1));
+    });
 
-  main_layout->addWidget(toggle_button);
-
-  main_widget->setLayout(main_layout);
-  setCentralWidget(main_widget);
-
-  adjustFontSize();
+    adjustFontSize();
 }
 
-QSize MainGUI::sizeHint() const
+QLabel* MainGUI::createLabel(const std::string& text, int font_size, Qt::Alignment alignment)
 {
-  return QSize(300, 200);
+    QLabel* label = new QLabel(QString::fromStdString(text), this);
+    label->setStyleSheet(QString("color: white; font-weight: bold; font-size: %1px;").arg(font_size));
+    label->setAlignment(alignment);
+    return label;
+}
+
+QPushButton* MainGUI::createButton(const std::string& text, const std::string& color, int width, int height, int font_size)
+{
+    QPushButton* button = new QPushButton(QString::fromStdString(text), this);
+    button->setStyleSheet(QString(
+        "QPushButton { background-color: %1; color: white; font-size: %2px; font-weight: bold; border-radius: 10px; }"
+    ).arg(QString::fromStdString(color)).arg(font_size));
+    
+    button->setMinimumSize(width, height); // 버튼 크기 설정
+    // button->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed); // 버튼 크기 고정
+    
+    return button;
+}
+
+
+
+void MainGUI::toggle_operation_mode()
+{
+    if (is_on) {
+        ros2_node->operation_mode_req_off();
+        toggle_button->setText("STOP");
+        toggle_button->setStyleSheet("background-color: #CC0000; color: white;");
+        is_on = false;
+    } else {
+        ros2_node->operation_mode_req_on();
+        toggle_button->setText("START");
+        toggle_button->setStyleSheet("background-color: #00CC66; color: white;");
+        is_on = true;
+    }
+}
+
+void MainGUI::decrease_lateral_offset()
+{
+    lateral_offset = std::max(-0.5, lateral_offset - 0.1);
+    ros2_node->publish_lateral_offset(lateral_offset);
+}
+
+void MainGUI::increase_lateral_offset()
+{
+    lateral_offset = std::min(0.5, lateral_offset + 0.1);
+    ros2_node->publish_lateral_offset(lateral_offset);
 }
 
 void MainGUI::resizeEvent(QResizeEvent* event)
 {
-  QMainWindow::resizeEvent(event);
-  adjustFontSize();
+    QMainWindow::resizeEvent(event);
+    adjustFontSize();
 }
 
 void MainGUI::adjustFontSize()
 {
-  int buttonSize = qMin(toggle_button->width(), toggle_button->height());
-  int fontSize = buttonSize / 3;
-
-  QFont font = status_label->font();
-  font.setPointSize(fontSize);
-  status_label->setFont(font);
-
-  QFont buttonFont = toggle_button->font();
-  buttonFont.setPointSize(fontSize);
-  toggle_button->setFont(buttonFont);
+    int fontSize = qMin(toggle_button->width(), toggle_button->height()) / 5;
+    QFont font = toggle_button->font();
+    font.setPointSize(fontSize);
+    toggle_button->setFont(font);
 }
 
-void MainGUI::toggle_operation_mode()
+QSize MainGUI::sizeHint() const
 {
-  if (is_on)
-  {
-    ros2_node->operation_mode_req_off();
-    status_label->setText("Control Mode : OFF");
-    toggle_button->setText("OFF");
-    toggle_button->setStyleSheet(
-        "QPushButton {"
-        "border-radius: 50px;"
-        "background-color: #CC0000;"
-        "color: white;"
-        "font-weight: bold;"
-        "}"
-    );
-    is_on = false;
-  }
-  else
-  {
-    ros2_node->operation_mode_req_on();
-    status_label->setText("Control Mode : ON");
-    toggle_button->setText("ON");
-    toggle_button->setStyleSheet(
-        "QPushButton {"
-        "border-radius: 50px;"
-        "background-color: #00CC66;"
-        "color: white;"
-        "font-weight: bold;"
-        "}"
-    );
-    is_on = true;
-  }
+    return QSize(300, 400);
 }
 
-MainGUI::~MainGUI()
+void MainGUI::showEvent(QShowEvent* event)
 {
+    QMainWindow::showEvent(event);
+    QRect screenGeometry = QGuiApplication::primaryScreen()->geometry();
+    setGeometry(screenGeometry.width() - 300, 0, 300, screenGeometry.height());
 }
+
+MainGUI::~MainGUI() {}

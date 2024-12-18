@@ -11,26 +11,26 @@ static void siginthandler(int /*param*/)
 int main(int argc, char* argv[])
 {
     QApplication app(argc, argv);
-    signal(SIGINT, siginthandler);  
+    signal(SIGINT, siginthandler);
 
     rclcpp::init(argc, argv);
 
     auto ros2_node = std::make_shared<Ros2Node>();
-    auto gui_app = std::make_shared<MainGUI>(ros2_node);
+    auto main_gui = std::make_shared<MainGUI>(ros2_node);
 
-    gui_app->show();  
+    main_gui->show();
 
-    rclcpp::executors::MultiThreadedExecutor exec;
-    exec.add_node(ros2_node);
+    rclcpp::executors::MultiThreadedExecutor executor;
+    executor.add_node(ros2_node);
 
-    while (rclcpp::ok())
+    while (rclcpp::ok()) 
     {
-        exec.spin_some();  
-        app.processEvents(); 
+        executor.spin_some();
+        app.processEvents();
     }
 
-    exec.remove_node(ros2_node);
+    executor.remove_node(ros2_node);
     rclcpp::shutdown();
 
-    return 0;  
+    return 0;
 }
